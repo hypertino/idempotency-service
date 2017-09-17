@@ -30,7 +30,7 @@ class IdempotencyService(implicit val injector: Injector) extends Service with I
   import so._
   logger.info(s"${getClass.getName} is STARTED")
 
-  def onRequestPut(implicit r: RequestPut): Task[ResponseBase] = {
+  def onIdempotentRequestPut(implicit r: IdempotentRequestPut): Task[ResponseBase] = {
     val uriHash = Hasher(r.uri).md5.hex
     val body = DynamicBody(r.body.toValue)
     hyperbus.ask(ContentPut(
@@ -41,7 +41,7 @@ class IdempotencyService(implicit val injector: Injector) extends Service with I
       )))
   }
 
-  def onRequestGet(implicit r: RequestGet): Task[Ok[RequestInformation]] = {
+  def onIdempotentRequestGet(implicit r: IdempotentRequestGet): Task[Ok[RequestInformation]] = {
     val uriHash = Hasher(r.uri).md5.hex
     hyperbus
       .ask(ContentGet(hyperStorageRequestPath(uriHash, r.key)))
@@ -51,19 +51,26 @@ class IdempotencyService(implicit val injector: Injector) extends Service with I
       }
   }
 
-  def onResponsePut(implicit r: ResponsePut): Task[ResponseBase] = {
+  def onIdempotentResponsePut(implicit r: IdempotentResponsePut): Task[ResponseBase] = {
     val uriHash = Hasher(r.uri).md5.hex
+    val body = DynamicBody(Obj.from(
+      "headers" → r.body.headers,
+      "body" → r.body.body
+    ))
     hyperbus.ask(ContentPut(
       hyperStorageResponsePath(uriHash, r.key),
-      r.body, headers=Headers(
-      HyperStorageHeader.HYPER_STORAGE_TTL → config.responseTtl.toSeconds,
-      HyperStorageHeader.IF_NONE_MATCH  → "*"
+      body, headers=Headers(
+      HyperStorageHeader.HYPER_STORAGE_TTL → config.responseTtl.toSeconds
     )))
   }
 
-  def onResponseGet(implicit r: ResponseGet): Task[ResponseBase] = {
+  def onIdempotentResponseGet(implicit r: IdempotentResponseGet): Task[Ok[ResponseWrapper]] = {
     val uriHash = Hasher(r.uri).md5.hex
-    hyperbus.ask(ContentGet(hyperStorageResponsePath(uriHash, r.key)))
+    hyperbus
+      .ask(ContentGet(hyperStorageResponsePath(uriHash, r.key)))
+      .map { ok ⇒
+        Ok(ResponseWrapper(ok.body.content.headers, ok.body.content.body))
+      }
   }
 
   protected def hyperStorageRequestPath(uriHash: String, key: String): String = s"idempotency-service/requests/$uriHash/$key"
