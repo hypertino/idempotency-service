@@ -69,7 +69,7 @@ class IdempotencyService(implicit val injector: Injector) extends Service with I
     hyperbus
       .ask(ContentGet(hyperStorageResponsePath(uriHash, r.key)))
       .map { ok ⇒
-        Ok(ResponseWrapper(ok.body.content.headers, ok.body.content.body))
+        Ok(ResponseWrapper(ok.body.content.dynamic.headers, ok.body.content.dynamic.body))
       }
   }
 
