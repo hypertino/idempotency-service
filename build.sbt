@@ -4,14 +4,14 @@ scalaVersion := crossScalaVersions.value.head
 
 lazy val `idempotency-service` = project in file(".") enablePlugins Raml2Hyperbus settings (
     name := "idempotency-service",
-    version := "0.2-SNAPSHOT",
+    version := "0.3-SNAPSHOT",
     organization := "com.hypertino",
     resolvers ++= Seq(
       Resolver.sonatypeRepo("public")
     ),
     libraryDependencies ++= Seq(
       "com.hypertino" %% "hyperbus" % "0.3-SNAPSHOT",
-      "com.hypertino" %% "service-control" % "0.3.0",
+      "com.hypertino" %% "service-control" % "0.4.1",
       "com.roundeights" %% "hasher" % "1.2.0",
       "com.hypertino" %% "hyperbus-t-inproc" % "0.3-SNAPSHOT" % "test",
       "com.hypertino" %% "service-config" % "0.2.0" % "test",
